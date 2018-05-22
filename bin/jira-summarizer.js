@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 const parse = require('csv-parse')
-const transform = require('stream-transform')
 const Transform = require('stream').Transform
 const groupBy = require('group-by')
+
+/*
+ * Meow
+ */
 
 const cli = require('meow')(
   `
@@ -23,25 +26,64 @@ const cli = require('meow')(
 )
 
 /*
- * Type
+ * Flow types
  */
 
 /*::
   export type Record = {
 		// (eg, 'PROJECT-550')
 	  'Issue key': string,
+
 		// (eg, 'Implement some feature')
 		'Summary': string,
+
 		// Long description, CRLF
 		'Description': string,
+
 		// (eg, 'label1 label2')
 		'Labels': string,
+
 		// (eg, 'PROJECT-110' or '')
 		'Custom field	(Epic Link)': string,
-		'Priority': 'Low' | 'Medium' | 'High' | 'Highest',
-		'Status': 'In Progress' | 'Rejected'
+
+		'Priority': 'Lowest' | 'Low' | 'Medium' | 'High' | 'Highest',
+		'Status': Status
 	}
+
+  export type Status = 'Open' | 'In Progress' | 'Rejected' | 'Closed'
+
+  export type Records = Array<Record>
+
+  export type GroupedRecords = {
+    [string]: Records
+  }
 */
+
+/**
+ * Status icons
+ */
+
+const ICONS = {
+  'Staging Ready': ':+1:',
+  Closed: ':star:',
+  'Code Review': ':+1:',
+  'In Progress': ':hourglass:',
+  Open: ':black_square_button:',
+  Rejected: ':warning:',
+  Other: ':grey_question:'
+}
+
+/**
+ * Priority annotations
+ */
+
+const PRIORITIES = {
+  Highest: '(!!)',
+  High: '(!)',
+  Medium: '',
+  Low: '(-)',
+  Lowest: '(--)'
+}
 
 /**
  * Runs it
@@ -57,34 +99,59 @@ function run() {
   process.stdin.pipe(parser).pipe(collect(render))
 }
 
-function render(records) {
+/**
+ * Render
+ */
+
+function render(records /*: Records */) /*: void */ {
   const CONFIG = require('../__config.json')
-  const groups = groupBy(records, record => record['Custom field (Epic Link)'])
-  const names = Object.keys(groups).sort()
+
+  const groups /*: GroupRecords */ = groupBy(
+    records,
+    record => record['Custom field (Epic Link)']
+  )
+
+  const names /*: Array<string> */ = Object.keys(groups).sort()
+
   const EPICS = CONFIG.epics
 
   const msg = names
-    .map(group => {
-      const records = groups[group]
-      const epicName = EPICS[group] || group
+    .map((group /*: string */) => {
+      const records /*: Records */ = groups[group]
+      const epicName /* string */ = EPICS[group] || group
+
       return [`## ${epicName}`, '\n\n', renderGroup(records, { CONFIG })].join(
         ''
       )
     })
     .join('\n\n')
 
-  const timestamp = new Date().toISOString().replace(/T.*$/, '')
-  console.log(`*Last updated on ${timestamp}*\n\n`)
+  console.log(`*Last updated on ${getTimestamp()}*\n\n`)
   console.log(msg)
 }
 
-function renderGroup(records, { CONFIG }) /*: string */ {
-  const items = records.map(item => {
-    const key = item['Issue key']
-    const title = item['Summary']
-    const status = item['Status']
+/**
+ * Return timestamp like `2018-09-02`
+ */
+
+function getTimestamp() /*: string */ {
+  return new Date().toISOString().replace(/T.*$/, '')
+}
+
+/**
+ * Renders a group of records
+ */
+
+function renderGroup(
+  records /*: Records */,
+  { CONFIG } /*: Context */
+) /*: string */ {
+  const items = records.map((record /*: Record */) => {
+    const key = record['Issue key']
+    const title = record['Summary']
+    const status = record['Status']
     const icon = toIcon(status)
-    const desc = item['Description'].replace(/\r\n/g, '\n')
+    const desc = record['Description'].replace(/\r\n/g, '\n')
     const shortdesc = desc
       .split('\n')[0]
       .replace(/^_/, '')
@@ -104,19 +171,18 @@ function renderGroup(records, { CONFIG }) /*: string */ {
   return items.join('\n\n')
 }
 
-const ICONS = {
-  'Staging Ready': ':+1:',
-  Closed: ':star:',
-  'Code Review': ':+1:',
-  'In Progress': ':hourglass:',
-  Open: ':black_square_button:',
-  Rejected: ':warning:',
-  Other: ':grey_question:'
-}
+/**
+ * Returns an icon from a status name
+ */
 
-function toIcon(status) {
+function toIcon(status /*: Status | string */) /*: string */ {
   return ICONS[status] || ICONS.Other
 }
+
+/**
+ * A stream transformer; collect all records into an array, and invoke a
+ * callback
+ */
 
 function collect(callback) {
   const records = []
