@@ -151,7 +151,7 @@ function renderGroup(
   const items = records.map((record /*: Record */) => {
     const key = record['Issue key']
     const priority = record['Priority']
-    const title = record['Summary']
+    const title = record['Summary'].trim()
     const status = record['Status']
     const icon = toIcon(status)
     const desc = record['Description'].replace(/\r\n/g, '\n')
@@ -160,8 +160,8 @@ function renderGroup(
     const url = `https://${domain}/browse/${key}`
     const label =
       PRIORITIES[priority] > 0
-        ? `**${title.trim()}**`
-        : PRIORITIES[priority] < 0 ? `*${title.trim()}*` : title
+        ? `:bangbang: ${title}`
+        : PRIORITIES[priority] < 0 ? `:arrow_down: ${title}` : title
 
     return [`- [${icon}](${url}) &nbsp; ${label}`, '', `  > ${shortdesc}`].join(
       '\n'
