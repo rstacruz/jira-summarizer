@@ -63,14 +63,14 @@ const cli = require('meow')(
  * Status icons
  */
 
-const ICONS = {
-  'Staging Ready': ':+1:',
-  Closed: ':star:',
-  'Code Review': ':+1:',
-  'In Progress': ':hourglass:',
-  Open: ':black_square_button:',
-  Rejected: ':warning:',
-  Other: ':grey_question:'
+const STATUS_COLORS = {
+  'Staging Ready': 'brightgreen',
+  Closed: 'brightgreen',
+  'Code Review': 'yellow',
+  'In Progress': 'yellow',
+  Open: 'lightgrey',
+  Rejected: 'yellow',
+  Other: 'lightgrey'
 }
 
 /**
@@ -78,11 +78,11 @@ const ICONS = {
  */
 
 const PRIORITIES = {
-  Highest: '(!!)',
-  High: '(!)',
-  Medium: '',
-  Low: '(-)',
-  Lowest: '(--)'
+  Highest: 2,
+  High: 1,
+  Medium: 0,
+  Low: -1,
+  Lowest: -2
 }
 
 /**
@@ -100,7 +100,12 @@ function run() {
 }
 
 /**
- * Render
+ * Renders to console.
+ *
+ * @example
+ *     const records = [...]
+ *     render(records)
+ *     // Logs to console
  */
 
 function render(records /*: Records */) /*: void */ {
@@ -120,22 +125,12 @@ function render(records /*: Records */) /*: void */ {
       const records /*: Records */ = groups[group]
       const epicName /*: string */ = EPICS[group] || group
 
-      return [`## ${epicName}`, '\n\n', renderGroup(records, { CONFIG })].join(
-        ''
-      )
+      return [`## ${epicName}`, renderGroup(records, { CONFIG })].join('\n\n')
     })
     .join('\n\n')
 
   console.log(`*Last updated on ${getTimestamp()}*\n\n`)
   console.log(msg)
-}
-
-/**
- * Return timestamp like `2018-09-02`
- */
-
-function getTimestamp() /*: string */ {
-  return new Date().toISOString().replace(/T.*$/, '')
 }
 
 /**
@@ -146,8 +141,16 @@ function renderGroup(
   records /*: Records */,
   { CONFIG } /*: Context */
 ) /*: string */ {
+  const sortedRecords = records.sort((a, b) => {
+    const idx =
+      (PRIORITIES[b['Priority']] || 0) - (PRIORITIES[a['Priority']] || 0)
+    if (idx !== 0) return idx
+    return a['Summary'].localeCompare(b['Summary'])
+  })
+
   const items = records.map((record /*: Record */) => {
     const key = record['Issue key']
+    const priority = record['Priority']
     const title = record['Summary']
     const status = record['Status']
     const icon = toIcon(status)
@@ -155,19 +158,37 @@ function renderGroup(
     const shortdesc = getShortDescription(desc)
     const domain = CONFIG.domain
     const url = `https://${domain}/browse/${key}`
+    const label =
+      PRIORITIES[priority] > 0
+        ? `**${title.trim()}**`
+        : PRIORITIES[priority] < 0 ? `*${title.trim()}*` : title
 
-    return [
-      `- ${icon} ${title}`,
-      '',
-      `  > ${shortdesc} <br> [<kbd>${status}</kbd>](${url})`
-    ].join('\n')
+    return [`- [${icon}](${url}) &nbsp; ${label}`, '', `  > ${shortdesc}`].join(
+      '\n'
+    )
   })
 
   return items.join('\n\n')
 }
 
 /**
+ * Return timestamp like `2018-09-02`
+ *
+ * @example
+ *     getTimestamp()
+ *     // => '2018-09-02'
+ */
+
+function getTimestamp() /*: string */ {
+  return new Date().toISOString().replace(/T.*$/, '')
+}
+
+/**
  * Extracts the short description out of a long description
+ *
+ * @example
+ *     getShortDescription('Makes waffles.\n\nThis thing is great for...')
+ *     // => 'Makes waffles.'
  */
 
 function getShortDescription(desc /*: string */) /*: string */ {
@@ -185,7 +206,10 @@ function getShortDescription(desc /*: string */) /*: string */ {
  */
 
 function toIcon(status /*: Status | string */) /*: string */ {
-  return ICONS[status] || ICONS.Other
+  const color = STATUS_COLORS[status] || STATUS_COLORS.Other
+  const label = status.toLowerCase().replace(/ /g, '_')
+  const url = `https://img.shields.io/badge/-${label}-${color}.svg`
+  return `![${status}](${url})`
 }
 
 /**
