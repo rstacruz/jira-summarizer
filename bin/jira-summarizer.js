@@ -158,14 +158,16 @@ function renderGroup(
     const shortdesc = getShortDescription(desc)
     const domain = CONFIG.domain
     const url = `https://${domain}/browse/${key}`
-    const label =
+    const suffix =
       PRIORITIES[priority] > 0
-        ? `:bangbang: ${title}`
-        : PRIORITIES[priority] < 0 ? `:arrow_down: ${title}` : title
+        ? ' :bangbang:'
+        : PRIORITIES[priority] < 0 ? ' :arrow_down:' : ''
 
-    return [`- [${icon}](${url}) &nbsp; ${label}`, '', `  > ${shortdesc}`].join(
-      '\n'
-    )
+    return [
+      `- [${icon}](${url}) &nbsp; ${title}${suffix}`,
+      '',
+      `  > ${shortdesc}`
+    ].join('\n')
   })
 
   return items.join('\n\n')
