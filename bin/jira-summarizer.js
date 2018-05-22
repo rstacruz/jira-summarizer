@@ -118,7 +118,7 @@ function render(records /*: Records */) /*: void */ {
   const msg = names
     .map((group /*: string */) => {
       const records /*: Records */ = groups[group]
-      const epicName /* string */ = EPICS[group] || group
+      const epicName /*: string */ = EPICS[group] || group
 
       return [`## ${epicName}`, '\n\n', renderGroup(records, { CONFIG })].join(
         ''
@@ -152,23 +152,32 @@ function renderGroup(
     const status = record['Status']
     const icon = toIcon(status)
     const desc = record['Description'].replace(/\r\n/g, '\n')
-    const shortdesc = desc
-      .split('\n')[0]
-      .replace(/^_/, '')
-      .replace(/_$/, '')
-      .replace(/^Summary: /i, '')
-      .replace(/^[A-Za-z]+'s summary: /i, '')
-
+    const shortdesc = getShortDescription(desc)
     const domain = CONFIG.domain
     const url = `https://${domain}/browse/${key}`
 
     return [
       `- ${icon} ${title}`,
+      '',
       `  > ${shortdesc} <br> [<kbd>${status}</kbd>](${url})`
     ].join('\n')
   })
 
   return items.join('\n\n')
+}
+
+/**
+ * Extracts the short description out of a long description
+ */
+
+function getShortDescription(desc /*: string */) /*: string */ {
+  return desc
+    .replace(/\r\n/g, '\n')
+    .split('\n')[0]
+    .replace(/^_/, '')
+    .replace(/_$/, '')
+    .replace(/^Summary: /i, '')
+    .replace(/^[A-Za-z]+'s summary: /i, '')
 }
 
 /**
