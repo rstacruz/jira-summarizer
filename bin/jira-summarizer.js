@@ -58,7 +58,7 @@ function run() {
 }
 
 function render(records) {
-  const CONFIG = require('./__config.json')
+  const CONFIG = require('../__config.json')
   const groups = groupBy(records, record => record['Custom field (Epic Link)'])
   const names = Object.keys(groups).sort()
   const EPICS = CONFIG.epics
@@ -67,14 +67,18 @@ function render(records) {
     .map(group => {
       const records = groups[group]
       const epicName = EPICS[group] || group
-      return [`## ${epicName}`, '\n\n', renderGroup(records)].join('')
+      return [`## ${epicName}`, '\n\n', renderGroup(records, { CONFIG })].join(
+        ''
+      )
     })
     .join('\n\n')
 
+  const timestamp = new Date().toISOString().replace(/T.*$/, '')
+  console.log(`*Last updated on ${timestamp}*\n\n`)
   console.log(msg)
 }
 
-function renderGroup(records) /*: string */ {
+function renderGroup(records, { CONFIG }) /*: string */ {
   const items = records.map(item => {
     const key = item['Issue key']
     const title = item['Summary']
@@ -89,11 +93,11 @@ function renderGroup(records) /*: string */ {
       .replace(/^[A-Za-z]+'s summary: /i, '')
 
     const domain = CONFIG.domain
-    const url = `${domain}/browse/${key}`
+    const url = `https://${domain}/browse/${key}`
 
     return [
       `- ${icon} ${title}`,
-      `  > ${shortdesc} &middot; <small>[${status}](${url})</small>`
+      `  > ${shortdesc} <br> [<kbd>${status}</kbd>](${url})`
     ].join('\n')
   })
 
