@@ -1,0 +1,7 @@
+{
+  "domain": "myproject.atlassian.net",
+  "epics": {
+    "PR-554": "Bug fixes",
+    "PR-766": "Home Page redesign"
+  }
+}

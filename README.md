@@ -1,7 +1,9 @@
 # jira-summarizer
 
+> Summarizes a list of Jira stories
+
 ## Usage
 
 ```bash
-jira-summarizer < JIRA.csv > output.md
+jira-summarizer -c config.json < JIRA.csv > output.md
 ```

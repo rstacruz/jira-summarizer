@@ -2,6 +2,7 @@
 const parse = require('csv-parse')
 const Transform = require('stream').Transform
 const groupBy = require('group-by')
+const resolve = require('path').resolve
 
 /*
  * Meow
@@ -10,17 +11,22 @@ const groupBy = require('group-by')
 const cli = require('meow')(
   `
   Usage:
-    $ jira-summarizer
+    $ jira-summarizer < input.csv > output.md
 
   Options:
-    -h, --help       show usage information
-    -v, --version    print version info and exit
+    -c, --config FILE    use this file
+
+  Options:
+    -h, --help           show usage information
+    -v, --version        print version info and exit
 `,
   {
     boolean: ['help', 'version'],
+    string: ['config'],
     alias: {
       h: 'help',
-      v: 'version'
+      v: 'version',
+      c: 'config'
     }
   }
 )
@@ -57,7 +63,36 @@ const cli = require('meow')(
   export type GroupedRecords = {
     [string]: Records
   }
+
+  export type Context = {
+    CONFIG: Config
+  }
+
+  export type Config = {
+    // (eg, 'foo.atlassian.net')
+    domain: string,
+
+    // (eg, `{ 'PR-23': 'Epic name', ... }`)
+    epics: EpicList
+  }
+
+  export type EpicList = {
+    [string]: string
+  }
+
+  export type CliOptions = {
+    config?: string
+  }
 */
+
+/**
+ * Defaults
+ */
+
+const DEFAULTS = {
+  domain: 'DOMAIN.atlassian.net',
+  epics: {}
+}
 
 /**
  * Status icons
@@ -89,14 +124,20 @@ const PRIORITIES = {
  * Runs it
  */
 
-function run() {
+function run(opts /*: CliOptions */) {
   const parser = parse({
     delimiter: ',',
     columns: true,
     cast: true
   })
 
-  process.stdin.pipe(parser).pipe(collect(render))
+  const configPath = opts.config
+  const userConfig = configPath
+    ? require(resolve(process.cwd(), configPath))
+    : {}
+  const CONFIG /*: Config */ = { ...DEFAULTS, ...userConfig }
+
+  process.stdin.pipe(parser).pipe(collect(render.bind(null, { CONFIG })))
 }
 
 /**
@@ -108,9 +149,7 @@ function run() {
  *     // Logs to console
  */
 
-function render(records /*: Records */) /*: void */ {
-  const CONFIG = require('../__config.json')
-
+function render({ CONFIG } /*: Context */, records /*: Records */) /*: void */ {
   const groups /*: GroupRecords */ = groupBy(
     records,
     record => record['Custom field (Epic Link)']
@@ -123,7 +162,7 @@ function render(records /*: Records */) /*: void */ {
   const msg = names
     .map((group /*: string */) => {
       const records /*: Records */ = groups[group]
-      const epicName /*: string */ = EPICS[group] || group
+      const epicName /*: string */ = EPICS[group] || group || 'No epic'
 
       return [`## ${epicName}`, renderGroup(records, { CONFIG })].join('\n\n')
     })
@@ -241,5 +280,5 @@ function collect(callback) {
  */
 
 if (!module.parent) {
-  run()
+  run(cli.flags)
 }
