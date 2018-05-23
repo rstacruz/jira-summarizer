@@ -1,18 +1,35 @@
 {
   "name": "jira-summarizer",
+  "description": "Summarizes a list of Jira stories",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "author": "Rico Sta. Cruz <rstacruz@users.noreply.github.com>",
+  "bin": {
+    "jira-summarizer": "bin/jira-summarizer.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rstacruz/jira-summarizer/issues"
+  },
   "dependencies": {
     "csv-parse": "^2.4.0",
     "group-by": "0.0.1",
     "meow": "5.0.0",
     "stream-transform": "^1.0.2"
+  },
+  "devDependencies": {},
+  "directories": {
+    "example": "example"
+  },
+  "homepage": "https://github.com/rstacruz/jira-summarizer#readme",
+  "keywords": [
+    "jira"
+  ],
+  "license": "MIT",
+  "main": "bin/jira-summarizer.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rstacruz/jira-summarizer.git"
+  },
+  "scripts": {
+    "test": "node bin/jira-summarizer.js --help"
   }
 }
