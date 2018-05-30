@@ -98,14 +98,19 @@ const DEFAULTS = {
  * Status icons
  */
 
-const STATUS_COLORS = {
-  'Staging Ready': 'brightgreen',
-  Closed: 'brightgreen',
-  'Code Review': 'yellow',
-  'In Progress': 'yellow',
-  Open: 'lightgrey',
-  Rejected: 'yellow',
-  Other: 'lightgrey'
+const STATUS_INDICES = {
+  'Staging Ready': 2,
+  Closed: 2,
+  'Code Review': 1,
+  'In Progress': 1,
+  Rejected: 1,
+  Open: 0
+}
+
+const STATUS_COLORS /*: { [string]: string } */ = {
+  0: 'lightgrey',
+  1: 'yellow',
+  2: 'brightgreen'
 }
 
 /**
@@ -180,13 +185,10 @@ function renderGroup(
   records /*: Records */,
   { CONFIG } /*: Context */
 ) /*: string */ {
-  const sortedRecords = records.sort((a, b) => {
-    const idx =
-      (PRIORITIES[b['Priority']] || 0) - (PRIORITIES[a['Priority']] || 0)
-    if (idx !== 0) return idx
-    return a['Summary'].localeCompare(b['Summary'])
-  })
+  // Sort the records.
+  const sortedRecords = records.sort(recordComparator)
 
+  // Then render them one-by-one.
   const items = records.map((record /*: Record */) => {
     const key = record['Issue key']
     const priority = record['Priority']
@@ -210,6 +212,25 @@ function renderGroup(
   })
 
   return items.join('\n\n')
+}
+
+/**
+ * Sorts records. This function's used as a comparator for `Array.prototype.sort()`.
+ */
+
+function recordComparator(a /*: Record */, b /*: Record */) {
+  const priority =
+    (PRIORITIES[b['Priority']] || 0) - (PRIORITIES[a['Priority']] || 0)
+  if (priority !== 0) return priority
+
+  const statusIdx =
+    (STATUS_INDICES[b['Status']] || 0) - (STATUS_INDICES[a['Status']] || 0)
+  if (statusIdx !== 0) return statusIdx
+
+  const statusName = a['Status'].localeCompare(b['Status'])
+  if (statusName !== 0) return statusName
+
+  return a['Summary'].localeCompare(b['Summary'])
 }
 
 /**
@@ -247,7 +268,8 @@ function getShortDescription(desc /*: string */) /*: string */ {
  */
 
 function toIcon(status /*: Status | string */) /*: string */ {
-  const color = STATUS_COLORS[status] || STATUS_COLORS.Other
+  const index = STATUS_INDICES[status] || 0
+  const color = STATUS_COLORS[index]
   const label = status.toLowerCase().replace(/ /g, '_')
   const url = `https://img.shields.io/badge/-${label}-${color}.svg`
   return `![${status}](${url})`
