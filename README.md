@@ -1,6 +1,8 @@
 # jira-summarizer
 
-> Summarizes a list of Jira stories
+> :construction: Summarizes a list of Jira stories
+
+Small CLI utility to summarize Jira stories into Markdown format. Great for writing reports.
 
 ## Install
 
